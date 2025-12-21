@@ -9,6 +9,54 @@ const propertyTypeValues: PropertyType[] = [
   'bodega',
 ];
 
+type NormalizedSearchParams = Record<string, string | string[] | undefined>;
+type AllowedSearchParams =
+  | NormalizedSearchParams
+  | URLSearchParams
+  | {
+      getAll(name: string): string[];
+      keys(): IterableIterator<string>;
+    }
+  | null
+  | undefined;
+
+const isURLSearchParamsLike = (
+  value: AllowedSearchParams
+): value is { getAll(name: string): string[]; keys(): IterableIterator<string> } => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'getAll' in value &&
+    typeof (value as { getAll?: unknown }).getAll === 'function' &&
+    'keys' in value &&
+    typeof (value as { keys?: unknown }).keys === 'function'
+  );
+};
+
+const normalizeSearchParams = (searchParams: AllowedSearchParams): NormalizedSearchParams => {
+  if (!searchParams) return {};
+
+  if (searchParams instanceof URLSearchParams) {
+    const result: NormalizedSearchParams = {};
+    for (const key of searchParams.keys()) {
+      const values = searchParams.getAll(key);
+      result[key] = values.length > 1 ? values : values[0];
+    }
+    return result;
+  }
+
+  if (isURLSearchParamsLike(searchParams)) {
+    const result: NormalizedSearchParams = {};
+    for (const key of searchParams.keys()) {
+      const values = searchParams.getAll(key);
+      result[key] = values.length > 1 ? values : values[0];
+    }
+    return result;
+  }
+
+  return searchParams as NormalizedSearchParams;
+};
+
 const getFirst = (value: string | string[] | undefined): string | undefined =>
   Array.isArray(value) ? value[0] : value;
 
@@ -25,64 +73,66 @@ const isPropertyType = (value: string): value is PropertyType =>
   propertyTypeValues.includes(value as PropertyType);
 
 export function parsePropertyFilters(
-  searchParams: Record<string, string | string[] | undefined>
+  searchParams: AllowedSearchParams = {}
 ): PropertyFilters {
+  const params = normalizeSearchParams(searchParams);
+
   const filters: PropertyFilters = {
     page: 1,
     pageSize: 12,
   };
 
-  const operation = getFirst(searchParams.operation);
+  const operation = getFirst(params.operation);
   if (operation && isOperationType(operation)) {
     filters.operation = operation;
   }
 
-  const type = getFirst(searchParams.type);
+  const type = getFirst(params.type);
   if (type && isPropertyType(type)) {
     filters.type = type;
   }
 
-  const zone = getFirst(searchParams.zone)?.trim();
+  const zone = getFirst(params.zone)?.trim();
   if (zone) {
     filters.zone = zone;
   }
 
-  const minPrice = toNumber(getFirst(searchParams.min));
+  const minPrice = toNumber(getFirst(params.min));
   if (minPrice !== null) {
     filters.minPrice = minPrice;
   }
 
-  const maxPrice = toNumber(getFirst(searchParams.max));
+  const maxPrice = toNumber(getFirst(params.max));
   if (maxPrice !== null) {
     filters.maxPrice = maxPrice;
   }
 
-  const bedrooms = toNumber(getFirst(searchParams.bed));
+  const bedrooms = toNumber(getFirst(params.bed));
   if (bedrooms !== null) {
     filters.bedrooms = bedrooms;
   }
 
-  const bathrooms = toNumber(getFirst(searchParams.bath));
+  const bathrooms = toNumber(getFirst(params.bath));
   if (bathrooms !== null) {
     filters.bathrooms = bathrooms;
   }
 
-  const parking = toNumber(getFirst(searchParams.park));
+  const parking = toNumber(getFirst(params.park));
   if (parking !== null) {
     filters.parking = parking;
   }
 
-  const q = getFirst(searchParams.q)?.trim();
+  const q = getFirst(params.q)?.trim();
   if (q) {
     filters.q = q;
   }
 
-  const page = toNumber(getFirst(searchParams.page));
+  const page = toNumber(getFirst(params.page));
   if (page !== null && page >= 1) {
     filters.page = page;
   }
 
-  const pageSize = toNumber(getFirst(searchParams.pageSize));
+  const pageSize = toNumber(getFirst(params.pageSize));
   if (pageSize !== null && pageSize >= 6 && pageSize <= 48) {
     filters.pageSize = pageSize;
   }
