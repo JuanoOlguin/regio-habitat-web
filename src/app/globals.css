@@ -172,3 +172,29 @@ label {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 1.2rem;
 }
+
+.featured-rail-wrapper {
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.featured-rail {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  animation: move-right 28s linear infinite;
+}
+
+.featured-card {
+  width: min(86vw, 320px);
+  flex-shrink: 0;
+}
+
+@keyframes move-right {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0%);
+  }
+}
